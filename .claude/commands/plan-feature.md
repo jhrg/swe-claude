@@ -11,9 +11,12 @@ If `$ARGUMENTS` is empty, ask for a short feature name or description and stop.
 
 1. **Read every file in `docs/requirements/` and `docs/constraints/` in full**, right
    now — don't rely on what they said earlier in this session. They may have changed.
+   Also read `docs/decisions/DECISIONS.md`: a plan that reverses an accepted ADR must
+   say so explicitly. Skip `_EXAMPLE_` / `*-EXAMPLE` placeholder entries.
 
 2. **Identify which existing `FR-###` / `NFR-###` / `UC-###` entries this feature
-   is actually backed by.** If none apply — the feature isn't traceable to anything
+   is actually backed by.** Don't use `Deprecated` entries; follow `Superseded by` to the
+   replacement; flag `Proposed` entries as unconfirmed. If none apply — the feature isn't traceable to anything
    written down — stop and say so plainly. Offer to run `/new-requirement` first.
    Do not invent a plausible-sounding requirement and plan against it; a plan built on
    an invented requirement is indistinguishable from a real one until someone checks.
@@ -38,7 +41,8 @@ If `$ARGUMENTS` is empty, ask for a short feature name or description and stop.
    - Open questions are genuine unknowns, not gaps papered over with a guess.
 
 6. **Write the plan to `plans/<slug>-plan.md`**, where `<slug>` is the feature name in
-   kebab-case. If that file already exists, ask before overwriting — don't clobber a
+   kebab-case. (If you're in plan mode, present the plan and write the file once plan
+   mode is exited or approved — don't try to write it from inside plan mode.) If that file already exists, ask before overwriting — don't clobber a
    plan that might be mid-review.
 
 7. **Summarize back to the user:**

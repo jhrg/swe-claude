@@ -30,6 +30,6 @@ entered back into the original device.
 **Consequences:** Reset flow now depends on transactional email deliverability, which
 becomes a new failure mode to monitor (see IC-EXAMPLE if a related constraint exists).
 
-**Related:** FR-001, UC-EXAMPLE
+**Related:** FR-EXAMPLE, UC-EXAMPLE
 
 ---

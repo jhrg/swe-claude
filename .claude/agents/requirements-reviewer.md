@@ -18,6 +18,8 @@ For each file in `docs/requirements/` and `docs/constraints/`, check for:
   known to take longer).
 - **Orphaned or dangling references.** A use case citing an FR ID that doesn't exist,
   or vice versa.
+- **References to retired entries.** An active entry or use case citing an FR/NFR/IC
+  whose Status is `Deprecated` or `Superseded`.
 - **Missing measurable targets on NFRs** where `TBD` would be more honest than a
   vague adjective.
 - **Requirements that read as implementation, not intent.** "Use Redis for caching"
@@ -25,6 +27,9 @@ For each file in `docs/requirements/` and `docs/constraints/`, check for:
   an ADR or an IC instead, and say why.
 
 Report as a flat list grouped by file, each item naming the ID and a one-line reason.
+List every file you checked, writing "no findings" for clean ones, so silence can't be
+mistaken for "didn't look." Skip `_EXAMPLE_` / `*-EXAMPLE` placeholder entries — they
+exist to show the format.
 Do not rewrite entries yourself, and do not invent a fix on the reviewer's behalf —
 your job is to point at the problem precisely enough that whoever asked can decide
 what to do about it.

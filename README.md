@@ -27,11 +27,14 @@ docs/
     DECISIONS.md                             # ADR-001, ... — why, not what
   bugs/
     BUG-LOG.md                               # BUG-001, ... — report → root cause → fix
+  tasks/
+    TASK-LOG.md                              # TASK-001, ... — scoped maintenance/engineering work
   deep-dives/
     README.md                                # convention note; one file per investigation
 plans/
   _template-plan.md                          # shape every generated feature plan follows
   _template-bugfix.md                        # shape every generated bugfix plan follows
+  _template-task.md                          # shape every generated task plan follows
 .claude/
   commands/
     init-planning.md      # /init-planning   — first-time interview & doc seeding
@@ -39,6 +42,7 @@ plans/
     fix-bug.md              # /fix-bug         — log a bug, find root cause, plan the fix
     deep-dive.md             # /deep-dive       — read-only code investigation, saved findings
     new-requirement.md     # /new-requirement — add an FR/NFR/UC/IC by interview
+    plan-task.md             # /plan-task       — log a maintenance/engineering task, draft a plan
     trace.md                # /trace           — find every reference to an ID
     audit-plan.md           # /audit-plan      — check a plan's citations, report only
   agents/
@@ -57,6 +61,14 @@ deviating from one (or from something that was never written down in the first
 place). `/fix-bug` logs it, investigates root cause read-only, and drafts a bugfix
 plan with regression risk and verification steps instead of delivery phases.
 
+**Tasks get a third parallel ID space, `TASK-###`.** Not new capability like an FR,
+not a correction like a bug — scoped engineering work such as dependency bumps,
+removing dead compile-time directives, or retrofitting tests onto code that predates
+them. `/plan-task` logs it and drafts a plan that emphasizes scope (exactly what's
+in, what's explicitly out) and how completeness gets checked, since this kind of
+task tends to fail quietly — a few instances missed — rather than loudly like a
+broken build.
+
 **`/deep-dive` is a standalone, read-only investigation command** for understanding
 existing code — onboarding to an unfamiliar module, answering "how does X work,"
 or checking whether the code still matches what the requirement docs claim. Findings
@@ -73,8 +85,11 @@ template** on the repo page (or `gh repo create my-project --template
 every new project.
 
 **Option B — copy into an existing repo.** Copy `CLAUDE.md`, `docs/`, `plans/`, and
-`.claude/` into a repo you already have. Nothing here assumes a particular language or
-stack — the `.claude/` folder and `docs/` folder are additive. Run `/init-planning`
+`.claude/` into a repo you already have (if it already has a `CLAUDE.md` or
+`.claude/settings.json`, merge rather than overwrite). Nothing in the core template
+assumes a particular language or stack — the `.claude/` folder and `docs/` folder are
+additive. Language-specific snippets (currently `arduino-platformio-conventions.md`,
+`cpp-conventions.md`, `java-conventions.md`, and `python-conventions.md`) are optional: paste the one you want into the Conventions section of `CLAUDE.md`. Run `/init-planning`
 afterward to seed the requirement docs from the existing codebase and an interview,
 rather than starting from blank tables.
 

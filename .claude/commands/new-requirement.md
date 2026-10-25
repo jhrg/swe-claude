@@ -13,13 +13,17 @@ Add a new requirement, use case, or constraint entry.
 2. **Compute the next ID.** Read the relevant doc (`docs/requirements/functional-
    requirements.md`, `non-functional-requirements.md`, `use-cases.md`, or
    `docs/constraints/implementation-constraints.md`) and find the highest existing
-   number for that prefix. The new ID is one higher, zero-padded to 3 digits. Never
+   number for that prefix. The new ID is one higher, zero-padded to 3 digits (ignore `_EXAMPLE_`
+   placeholders; with no real entries yet, the first ID is 001). Never
    reuse a number that was deprecated or superseded.
 
-3. **Interview for the required fields — do not guess any of them:**
+3. **Check for an existing entry that already covers this** (if so, say so and ask
+   whether to extend it or add a new one), then **interview for the required fields —
+   do not guess any of them:**
    - `FR`: the requirement statement (single testable sentence), priority
-     (Must/Should/Could), related use case IDs if any known yet.
-   - `NFR`: category, the requirement, a measurable target, priority.
+     (Must/Should/Could), related use case IDs if any known yet, status (suggest
+     `Proposed`; don't mark `Approved` unless the user says so).
+   - `NFR`: category, the requirement, a measurable target, priority, status (as for `FR`).
    - `UC`: title, actor(s), trigger, preconditions, main flow steps, alternate/
      exception flows, postconditions, related FR/NFR IDs.
    - `IC`: category, the constraint itself, rationale, impact on design.
@@ -32,7 +36,8 @@ Add a new requirement, use case, or constraint entry.
    sections exactly (same column order, same heading structure for use cases).
 
 5. **On confirmation, append it** to the correct file, preserving the existing table
-   or section format. Do not touch other entries.
+   or section format. Do not touch other entries (one exception: if you introduced a new category, add
+   it to the category list at the top of that doc, which the docs say to keep in sync).
 
 6. **Report the new ID back**, and mention `/trace <ID>` and `/plan-feature` as the
    next useful commands now that it exists.

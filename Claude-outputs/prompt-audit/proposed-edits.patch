@@ -1,0 +1,408 @@
+diff --git a/.claude/agents/requirements-reviewer.md b/.claude/agents/requirements-reviewer.md
+index a548b6e..b76f05c 100644
+--- a/.claude/agents/requirements-reviewer.md
++++ b/.claude/agents/requirements-reviewer.md
+@@ -18,6 +18,8 @@ For each file in `docs/requirements/` and `docs/constraints/`, check for:
+   known to take longer).
+ - **Orphaned or dangling references.** A use case citing an FR ID that doesn't exist,
+   or vice versa.
++- **References to retired entries.** An active entry or use case citing an FR/NFR/IC
++  whose Status is `Deprecated` or `Superseded`.
+ - **Missing measurable targets on NFRs** where `TBD` would be more honest than a
+   vague adjective.
+ - **Requirements that read as implementation, not intent.** "Use Redis for caching"
+@@ -25,6 +27,9 @@ For each file in `docs/requirements/` and `docs/constraints/`, check for:
+   an ADR or an IC instead, and say why.
+ 
+ Report as a flat list grouped by file, each item naming the ID and a one-line reason.
++List every file you checked, writing "no findings" for clean ones, so silence can't be
++mistaken for "didn't look." Skip `_EXAMPLE_` / `*-EXAMPLE` placeholder entries — they
++exist to show the format.
+ Do not rewrite entries yourself, and do not invent a fix on the reviewer's behalf —
+ your job is to point at the problem precisely enough that whoever asked can decide
+ what to do about it.
+diff --git a/.claude/commands/audit-plan.md b/.claude/commands/audit-plan.md
+index 6b3c79a..06ab709 100644
+--- a/.claude/commands/audit-plan.md
++++ b/.claude/commands/audit-plan.md
+@@ -20,13 +20,15 @@ one candidate, confirm before proceeding rather than assuming.
+    cite zero FR/NFR/UC — most maintenance work (dependency bumps, retrofitting
+    tests) doesn't need requirement backing to be legitimate.
+ 
+-2. **Extract every `FR-###` / `NFR-###` / `UC-###` / `IC-###` / `BUG-###` / `TASK-###`
+-   cited anywhere in it.**
++2. **Extract every `FR-###` / `NFR-###` / `UC-###` / `IC-###` / `ADR-###` / `BUG-###` /
++   `TASK-###` cited anywhere in it.**
+ 
+ 3. **Verify each cited ID actually exists** in the current `docs/requirements/`,
+-   `docs/constraints/`, `docs/bugs/BUG-LOG.md`, and `docs/tasks/TASK-LOG.md` files.
+-   Flag any that don't — a typo, a renumbered ID, or an ID that was invented rather
+-   than looked up.
++   `docs/constraints/`, `docs/decisions/DECISIONS.md`, `docs/bugs/BUG-LOG.md`, and
++   `docs/tasks/TASK-LOG.md` files. Flag any that don't — a typo, a renumbered ID, or an
++   ID that was invented rather than looked up. Also flag a cited entry whose Status is
++   `Deprecated` or `Superseded` (the plan rests on something no longer current), and
++   any ID that exists only as an `_EXAMPLE_` placeholder.
+ 
+ 4. **Flag uncited work.** Look at each phase's steps: if a phase does something with
+    no ID citation anywhere near it, flag it — either it's scope creep that crept in
+@@ -34,10 +36,12 @@ one candidate, confirm before proceeding rather than assuming.
+    the requirement docs and should get one via `/new-requirement`.
+ 
+ 5. **Report coverage**, not just problems: which requirements relevant to this
+-   feature area are cited, and — by cross-referencing `/trace`-style search — which
++   feature area are cited, and — by grepping the requirement docs for the plan's feature area — which
+    related requirements exist but aren't mentioned in this plan at all. That's not
+    automatically wrong (not every related requirement belongs in every plan) but it's
+-   worth surfacing.
++   worth surfacing. For feature plans, also check that every ID cited inline in a phase
++   appears in the **Requirements traced** / **Constraints considered** sections, and
++   vice versa.
+ 
+ 6. **Change nothing.** This command produces a report. Whether to fix what it finds
+    is the user's call, made in a separate step.
+diff --git a/.claude/commands/deep-dive.md b/.claude/commands/deep-dive.md
+index 001bdf9..7dd83ff 100644
+--- a/.claude/commands/deep-dive.md
++++ b/.claude/commands/deep-dive.md
+@@ -10,7 +10,9 @@ specific question.
+ 
+ ## Steps
+ 
+-1. **Explore read-only.** Map the files and modules actually involved: structure, key
++1. **Check for prior work, then explore read-only.** First look in `docs/deep-dives/`
++   for an existing note on this area; if there is one, read it, note its date, and
++   verify it against the code rather than starting over. Then map the files and modules actually involved: structure, key
+    abstractions, control/data flow, external dependencies, anything that stands out as
+    a risk area (untested, tightly coupled, doing more than its name suggests). Stay
+    descriptive — report what's there, and only editorialize about quality if asked to.
+@@ -25,7 +27,8 @@ specific question.
+ 3. **Summarize conversationally first.** The point of a deep dive is usually an
+    immediate answer, not a file.
+ 
+-4. **Save findings to `docs/deep-dives/<slug>.md`**, dated, with the question that
++4. **Save findings to `docs/deep-dives/<slug>.md`**, dated (absolute date from `date +%F`, plus `git rev-parse --short HEAD` if this is a
++   git repo, so a later reader can judge how stale it is), with the question that
+    prompted it at the top (see `docs/deep-dives/README.md` for why). Confirm before
+    overwriting an existing file with the same slug — a later deep dive on the same
+    area might be meant to update it or might be a different question that deserves its
+diff --git a/.claude/commands/fix-bug.md b/.claude/commands/fix-bug.md
+index 43b931c..24e9366 100644
+--- a/.claude/commands/fix-bug.md
++++ b/.claude/commands/fix-bug.md
+@@ -9,7 +9,8 @@ Handle a bug: $ARGUMENTS
+ 
+ 1. **Resolve new vs. existing.** If `$ARGUMENTS` is a `BUG-###` ID already present in
+    `docs/bugs/BUG-LOG.md`, read that entry and resume from wherever it left off (skip
+-   to step 5 if root cause is already filled in, otherwise step 4). If `$ARGUMENTS` is
++   to step 6 if root cause is already filled in, otherwise step 5; never repeat step 4 —
++   the bug already has an ID). If `$ARGUMENTS` is
+    empty, ask for a short description. Otherwise treat it as a new bug report.
+ 
+ 2. **For a new bug, interview for concrete reproduction — don't accept a vague
+@@ -31,9 +32,11 @@ Handle a bug: $ARGUMENTS
+ 
+ 4. **Assign the next `BUG-###` ID** (read `docs/bugs/BUG-LOG.md`, find the highest
+    existing number, increment) and append a new section following the existing
+-   format, `Status: Investigating`.
++   format, `Status: Open` (logged with concrete reproduction steps; root cause not yet
++   looked at).
+ 
+-5. **Investigate root cause, read-only.** Trace the actual code path involved. For
++5. **Investigate root cause, read-only.** First set the entry's status to
++   `Investigating`. Trace the actual code path involved. For
+    anything beyond a narrow, localized bug — where understanding it means mapping a
+    whole subsystem — use `/deep-dive` first and come back with findings rather than
+    trying to hold a large investigation inline here. Fill in the `Root cause` field
+diff --git a/.claude/commands/new-requirement.md b/.claude/commands/new-requirement.md
+index 1211371..34a9090 100644
+--- a/.claude/commands/new-requirement.md
++++ b/.claude/commands/new-requirement.md
+@@ -13,13 +13,17 @@ Add a new requirement, use case, or constraint entry.
+ 2. **Compute the next ID.** Read the relevant doc (`docs/requirements/functional-
+    requirements.md`, `non-functional-requirements.md`, `use-cases.md`, or
+    `docs/constraints/implementation-constraints.md`) and find the highest existing
+-   number for that prefix. The new ID is one higher, zero-padded to 3 digits. Never
++   number for that prefix. The new ID is one higher, zero-padded to 3 digits (ignore `_EXAMPLE_`
++   placeholders; with no real entries yet, the first ID is 001). Never
+    reuse a number that was deprecated or superseded.
+ 
+-3. **Interview for the required fields — do not guess any of them:**
++3. **Check for an existing entry that already covers this** (if so, say so and ask
++   whether to extend it or add a new one), then **interview for the required fields —
++   do not guess any of them:**
+    - `FR`: the requirement statement (single testable sentence), priority
+-     (Must/Should/Could), related use case IDs if any known yet.
+-   - `NFR`: category, the requirement, a measurable target, priority.
++     (Must/Should/Could), related use case IDs if any known yet, status (suggest
++     `Proposed`; don't mark `Approved` unless the user says so).
++   - `NFR`: category, the requirement, a measurable target, priority, status (as for `FR`).
+    - `UC`: title, actor(s), trigger, preconditions, main flow steps, alternate/
+      exception flows, postconditions, related FR/NFR IDs.
+    - `IC`: category, the constraint itself, rationale, impact on design.
+@@ -32,7 +36,8 @@ Add a new requirement, use case, or constraint entry.
+    sections exactly (same column order, same heading structure for use cases).
+ 
+ 5. **On confirmation, append it** to the correct file, preserving the existing table
+-   or section format. Do not touch other entries.
++   or section format. Do not touch other entries (one exception: if you introduced a new category, add
++   it to the category list at the top of that doc, which the docs say to keep in sync).
+ 
+ 6. **Report the new ID back**, and mention `/trace <ID>` and `/plan-feature` as the
+    next useful commands now that it exists.
+diff --git a/.claude/commands/plan-feature.md b/.claude/commands/plan-feature.md
+index abd36f3..e6e90a5 100644
+--- a/.claude/commands/plan-feature.md
++++ b/.claude/commands/plan-feature.md
+@@ -11,9 +11,12 @@ If `$ARGUMENTS` is empty, ask for a short feature name or description and stop.
+ 
+ 1. **Read every file in `docs/requirements/` and `docs/constraints/` in full**, right
+    now — don't rely on what they said earlier in this session. They may have changed.
++   Also read `docs/decisions/DECISIONS.md`: a plan that reverses an accepted ADR must
++   say so explicitly. Skip `_EXAMPLE_` / `*-EXAMPLE` placeholder entries.
+ 
+ 2. **Identify which existing `FR-###` / `NFR-###` / `UC-###` entries this feature
+-   is actually backed by.** If none apply — the feature isn't traceable to anything
++   is actually backed by.** Don't use `Deprecated` entries; follow `Superseded by` to the
++   replacement; flag `Proposed` entries as unconfirmed. If none apply — the feature isn't traceable to anything
+    written down — stop and say so plainly. Offer to run `/new-requirement` first.
+    Do not invent a plausible-sounding requirement and plan against it; a plan built on
+    an invented requirement is indistinguishable from a real one until someone checks.
+@@ -38,7 +41,8 @@ If `$ARGUMENTS` is empty, ask for a short feature name or description and stop.
+    - Open questions are genuine unknowns, not gaps papered over with a guess.
+ 
+ 6. **Write the plan to `plans/<slug>-plan.md`**, where `<slug>` is the feature name in
+-   kebab-case. If that file already exists, ask before overwriting — don't clobber a
++   kebab-case. (If you're in plan mode, present the plan and write the file once plan
++   mode is exited or approved — don't try to write it from inside plan mode.) If that file already exists, ask before overwriting — don't clobber a
+    plan that might be mid-review.
+ 
+ 7. **Summarize back to the user:**
+diff --git a/.claude/commands/trace.md b/.claude/commands/trace.md
+index 66ec48f..0b2db24 100644
+--- a/.claude/commands/trace.md
++++ b/.claude/commands/trace.md
+@@ -1,5 +1,5 @@
+ ---
+-description: Report every place an FR/NFR/UC/IC/ADR ID is referenced, and flag it if nothing references it yet
++description: Report every place an FR/NFR/UC/IC/ADR/BUG/TASK ID is referenced, and flag it if nothing references it yet
+ argument-hint: <ID, e.g. FR-014>
+ ---
+ 
+@@ -14,7 +14,8 @@ If `$ARGUMENTS` is empty or doesn't look like a `PREFIX-###` ID, ask for one.
+    `BUG-###`), or `docs/tasks/TASK-LOG.md` (for a `TASK-###`) and quote it briefly.
+ 
+ 2. **Search the whole repo for other references** — `docs/`, `plans/`, and any source
+-   code or comments — for the literal ID string. Use `grep -rn` rather than guessing
++   code or comments — for the literal ID string. Use `grep -rnw --exclude-dir=.git` (`-w` so `FR-001` can't match inside `FR-0010`)
++   rather than guessing
+    from memory.
+ 
+ 3. **Report, grouped by kind:**
+diff --git a/CLAUDE.md b/CLAUDE.md
+index 928e70e..0ed0007 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -8,9 +8,11 @@
+ 
+ This repo plans work from written requirements, not from conversation memory or
+ assumption. Requirements, use cases, and constraints live in `docs/`. Plans that
+-Claude produces live in `plans/`. Every plan traces back to specific requirement IDs.
+-If a request has no requirement backing it, that's a signal to add one — not to
+-infer one silently.
++Claude produces live in `plans/`. Every plan traces back to written IDs: a feature
++plan cites FR/NFR/UC/IC IDs, a bugfix plan cites a `BUG-###`, a task plan cites a
++`TASK-###` (bugfix and task plans may legitimately cite no FR/NFR/UC). If a *feature*
++request has no requirement backing it, that's a signal to add one — not to infer one
++silently.
+ 
+ ## Read before planning anything
+ 
+@@ -28,6 +30,14 @@ infer one silently.
+ 
+ Read the requirement and constraint docs **in full** before drafting or revising a
+ plan — don't rely on what they said earlier in the session, they may have changed.
++Also check `docs/decisions/DECISIONS.md` for any accepted ADR the design would
++contradict (flag it the way you'd flag an IC tension), and look in `docs/deep-dives/`
++for an existing note on the area before investigating it again.
++
++- Ignore `_EXAMPLE_` / `*-EXAMPLE` placeholder entries — they show the format; they
++  are not requirements.
++- Don't plan against a `Deprecated` entry; follow `Superseded by` to its replacement.
++  Call out any `Proposed` entry as not yet confirmed rather than treating it as settled.
+ 
+ ## ID conventions
+ 
+@@ -65,6 +75,13 @@ plan — don't rely on what they said earlier in the session, they may have chan
+   explicitly** and ask how to proceed. Don't silently comply with the constraint by
+   redesigning around it without flagging the tension, and don't silently ignore it.
+ 
++## Filling in templates and logs
++
++When you create a plan or log entry from a template: set `Status` to the single
++starting value (`Draft`, `Open`, or `Investigating`) — never copy the `A | B | C`
++option list; set `Created` / dates to today's actual date (run `date +%F` if you
++don't have it — never guess); and leave genuinely unknown fields `TBD`.
++
+ ## Custom commands available in this repo
+ 
+ | Command | Does |
+@@ -78,6 +95,10 @@ plan — don't rely on what they said earlier in the session, they may have chan
+ | `/trace <ID>` | Reports everywhere an ID is referenced — docs, plans, code — and flags orphaned requirements |
+ | `/audit-plan <plan file>` | Checks a plan's ID citations against the requirement docs; reports gaps and coverage, changes nothing |
+ 
++The `requirements-reviewer` subagent (`.claude/agents/`) reviews the requirement and
++constraint docs for vague, untestable, conflicting, or dangling entries. Use it when
++asked to review or tighten those docs — it reports findings and never edits.
++
+ ## Conventions
+ 
+ {{CONVENTIONS — e.g. language/stack, branching model, where code actually lives, test
+diff --git a/README.md b/README.md
+index d28d193..f5563e5 100644
+--- a/README.md
++++ b/README.md
+@@ -85,8 +85,11 @@ template** on the repo page (or `gh repo create my-project --template
+ every new project.
+ 
+ **Option B — copy into an existing repo.** Copy `CLAUDE.md`, `docs/`, `plans/`, and
+-`.claude/` into a repo you already have. Nothing here assumes a particular language or
+-stack — the `.claude/` folder and `docs/` folder are additive. Run `/init-planning`
++`.claude/` into a repo you already have (if it already has a `CLAUDE.md` or
++`.claude/settings.json`, merge rather than overwrite). Nothing in the core template
++assumes a particular language or stack — the `.claude/` folder and `docs/` folder are
++additive. Language-specific snippets (currently `arduino-platformio-conventions.md`)
++are optional: paste the one you want into the Conventions section of `CLAUDE.md`. Run `/init-planning`
+ afterward to seed the requirement docs from the existing codebase and an interview,
+ rather than starting from blank tables.
+ 
+diff --git a/arduino-platformio-conventions.md b/arduino-platformio-conventions.md
+index 45acc45..ba7317a 100644
+--- a/arduino-platformio-conventions.md
++++ b/arduino-platformio-conventions.md
+@@ -1,7 +1,11 @@
++<!-- Paste the body below into CLAUDE.md in place of the {{CONVENTIONS}} placeholder,
++     and drop or demote this H2 so CLAUDE.md keeps a single `## Conventions` heading. -->
++
+ ## Conventions — Arduino / PlatformIO (C/C++)
+ 
+-**Stack:** C++14 (bump to C++17 only if every target board's toolchain supports it —
+-check before assuming), Arduino framework via PlatformIO. Target board(s)/MCU family:
++**Stack:** C++14 (verify each target toolchain actually builds it — older AVR
++toolchains default to gnu++11 — and bump to C++17 only if every target board supports
++it; check before assuming), Arduino framework via PlatformIO. Target board(s)/MCU family:
+ `{{BOARD(S) — e.g. ATmega328P (Uno), ESP32-WROOM, SAMD21}}`.
+ 
+ ### Project layout & `platformio.ini`
+@@ -9,8 +13,8 @@ check before assuming), Arduino framework via PlatformIO. Target board(s)/MCU fa
+ - Pin exact versions: `platform = espressif32@6.x.x`, not a bare `platform =
+   espressif32`. An unpinned platform/toolchain update is a silent way to break a build
+   that worked yesterday.
+-- One `[env:...]` per physical target, plus a `[env:native]` (no `board =`, host
+-  compiler) for anything hardware-independent — this is what makes off-device unit
++- One `[env:...]` per physical target, plus a `[env:native]` (`platform = native`, no
++  `board =`; uses the host compiler) for anything hardware-independent — this is what makes off-device unit
+   testing possible at all.
+ - Build flags: `-Wall -Wextra` always on; move to `-Werror` once the codebase is
+   warning-clean, and don't silence a warning with a pragma without a comment saying
+@@ -31,8 +35,9 @@ check before assuming), Arduino framework via PlatformIO. Target board(s)/MCU fa
+ - No dynamic allocation after `setup()` on RAM-constrained boards (classic AVR,
+   SAMD21, anything in the 2–32 KB RAM range): no `new`, no `malloc`, no `String`
+   concatenation in a loop. Heap fragmentation on a device with a few KB of RAM is a
+-  real, field-reported failure mode, not a style nitpick. Use fixed-size buffers or
+-  `std::array` instead. On boards with a real heap (ESP32, Teensy, etc.) this relaxes,
++  real, field-reported failure mode, not a style nitpick. Use fixed-size buffers
++  (plain arrays, or `std::array` where the toolchain ships the C++ standard library —
++  classic AVR's typically doesn't) instead. On boards with a real heap (ESP32, Teensy, etc.) this relaxes,
+   but allocation still never happens inside an ISR or a tight timing loop.
+ - Avoid Arduino `String` in library/logic code — use `char[]` buffers or fixed spans.
+   `String` is acceptable in top-level sketch glue code, not in reusable modules.
+diff --git a/docs/bugs/BUG-LOG.md b/docs/bugs/BUG-LOG.md
+index 3962f7f..1b4cf21 100644
+--- a/docs/bugs/BUG-LOG.md
++++ b/docs/bugs/BUG-LOG.md
+@@ -6,7 +6,10 @@
+ # Bug Log
+ 
+ Convention: `BUG-###`, sequential, never renumbered. Status: `Open` → `Investigating`
+-→ `Fix Planned` → `Fixed` → (or `Won't Fix` / `Duplicate of BUG-0XX`). **Only the user
++→ `Fix Planned` → `Fixed` → (or `Won't Fix` / `Duplicate of BUG-0XX`). `Open` means
++logged with reproduction steps but root cause not yet looked at (`/fix-bug` sets it
++at step 4 and moves to `Investigating` at step 5; an entry logged by hand starts here
++too). **Only the user
+ sets a bug to `Fixed`** — that's a claim about verified deployed behavior, not
+ something to self-report from having written a fix plan.
+ 
+@@ -19,7 +22,7 @@ something to self-report from having written a fix plan.
+ **Severity:** High
+ **Status:** Fix Planned
+ **Reported:** YYYY-MM-DD
+-**Related requirements:** FR-001, UC-EXAMPLE (violates the "time-limited" part of both)
++**Related requirements:** FR-EXAMPLE, UC-EXAMPLE (violates the "time-limited" part of both)
+ **Fix plan:** `plans/bugfix-reset-link-expiry-plan.md`
+ 
+ **Reproduction steps:**
+@@ -28,7 +31,7 @@ something to self-report from having written a fix plan.
+ 3. Follow the link anyway
+ 
+ **Expected behavior:** Link is rejected with an "expired, request a new one" message
+-(per FR-001).
++(per FR-EXAMPLE).
+ 
+ **Actual behavior:** Link still succeeds and resets the password.
+ 
+diff --git a/docs/decisions/DECISIONS.md b/docs/decisions/DECISIONS.md
+index 362515c..c359725 100644
+--- a/docs/decisions/DECISIONS.md
++++ b/docs/decisions/DECISIONS.md
+@@ -30,6 +30,6 @@ entered back into the original device.
+ **Consequences:** Reset flow now depends on transactional email deliverability, which
+ becomes a new failure mode to monitor (see IC-EXAMPLE if a related constraint exists).
+ 
+-**Related:** FR-001, UC-EXAMPLE
++**Related:** FR-EXAMPLE, UC-EXAMPLE
+ 
+ ---
+diff --git a/docs/requirements/functional-requirements.md b/docs/requirements/functional-requirements.md
+index 1cf2f65..0796c5a 100644
+--- a/docs/requirements/functional-requirements.md
++++ b/docs/requirements/functional-requirements.md
+@@ -10,7 +10,7 @@ Priority: `Must` / `Should` / `Could` (MoSCoW). Status: `Proposed` / `Approved`
+ 
+ | ID | Requirement | Priority | Related Use Cases | Status |
+ |---|---|---|---|---|
+-| _EXAMPLE_ | Users can reset a forgotten password via an emailed, time-limited link | Must | UC-001 | _delete this row_ |
++| _EXAMPLE_ | Users can reset a forgotten password via an emailed, time-limited link | Must | UC-EXAMPLE | _delete this row_ |
+ 
+ <!-- Add new rows via /new-requirement, or by hand — keep the table format. Each
+      requirement should be a single testable statement, not a paragraph. If it needs
+diff --git a/docs/requirements/use-cases.md b/docs/requirements/use-cases.md
+index 8f57f44..1589cf0 100644
+--- a/docs/requirements/use-cases.md
++++ b/docs/requirements/use-cases.md
+@@ -33,7 +33,7 @@ Convention: `UC-###`. Each use case follows the template below. Link related `FR
+ **Postconditions:** User's password is updated; all other active sessions are
+ invalidated
+ 
+-**Related requirements:** FR-001, NFR-EXAMPLE (add real IDs once they exist)
++**Related requirements:** FR-EXAMPLE, NFR-EXAMPLE (add real IDs once they exist)
+ 
+ ---
+ 
+diff --git a/docs/tasks/TASK-LOG.md b/docs/tasks/TASK-LOG.md
+index 2d12448..9f4fb77 100644
+--- a/docs/tasks/TASK-LOG.md
++++ b/docs/tasks/TASK-LOG.md
+@@ -7,8 +7,10 @@
+ 
+ # Task Log
+ 
+-Convention: `TASK-###`, sequential, never renumbered. Status: `Open` → `In Progress`
+-→ `Done` (or `Won't Do` / `Superseded by TASK-0XX`). Category is one of: Dependency
++Convention: `TASK-###`, sequential, never renumbered. Status: `Open` → `Plan Ready` →
++`In Progress` → `Done` (or `Won't Do` / `Superseded by TASK-0XX`). **Only the user sets
++`Done`** — it's a claim about verified work, not something to self-report from having
++written a plan. Category is one of: Dependency
+ Update, Code Cleanup, Test Coverage, Build/Tooling, Documentation (add categories as
+ needed).
+ 

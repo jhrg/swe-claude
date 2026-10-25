@@ -6,9 +6,11 @@
 # Bug Log
 
 Convention: `BUG-###`, sequential, never renumbered. Status: `Open` → `Investigating`
-→ `Fix Planned` → `Fixed` → (or `Won't Fix` / `Duplicate of BUG-0XX`). **Only the user
-sets a bug to `Fixed`** — that's a claim about verified deployed behavior, not
-something to self-report from having written a fix plan.
+→ `Fix Planned` → `Fixed` → (or `Won't Fix` / `Duplicate of BUG-0XX`). `Open` means
+logged with reproduction steps but root cause not yet looked at (`/fix-bug` sets it
+at step 4 and moves to `Investigating` at step 5; an entry logged by hand starts here
+too). **Only the user sets a bug to `Fixed`** — that's a claim about verified
+deployed behavior, not something to self-report from having written a fix plan.
 
 ---
 
@@ -19,7 +21,7 @@ something to self-report from having written a fix plan.
 **Severity:** High
 **Status:** Fix Planned
 **Reported:** YYYY-MM-DD
-**Related requirements:** FR-001, UC-EXAMPLE (violates the "time-limited" part of both)
+**Related requirements:** FR-EXAMPLE, UC-EXAMPLE (violates the "time-limited" part of both)
 **Fix plan:** `plans/bugfix-reset-link-expiry-plan.md`
 
 **Reproduction steps:**
@@ -28,7 +30,7 @@ something to self-report from having written a fix plan.
 3. Follow the link anyway
 
 **Expected behavior:** Link is rejected with an "expired, request a new one" message
-(per FR-001).
+(per FR-EXAMPLE).
 
 **Actual behavior:** Link still succeeds and resets the password.
 

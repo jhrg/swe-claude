@@ -10,7 +10,7 @@ Priority: `Must` / `Should` / `Could` (MoSCoW). Status: `Proposed` / `Approved` 
 
 | ID | Requirement | Priority | Related Use Cases | Status |
 |---|---|---|---|---|
-| _EXAMPLE_ | Users can reset a forgotten password via an emailed, time-limited link | Must | UC-001 | _delete this row_ |
+| _EXAMPLE_ | Users can reset a forgotten password via an emailed, time-limited link | Must | UC-EXAMPLE | _delete this row_ |
 
 <!-- Add new rows via /new-requirement, or by hand — keep the table format. Each
      requirement should be a single testable statement, not a paragraph. If it needs

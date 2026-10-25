@@ -33,7 +33,7 @@ Convention: `UC-###`. Each use case follows the template below. Link related `FR
 **Postconditions:** User's password is updated; all other active sessions are
 invalidated
 
-**Related requirements:** FR-001, NFR-EXAMPLE (add real IDs once they exist)
+**Related requirements:** FR-EXAMPLE, NFR-EXAMPLE (add real IDs once they exist)
 
 ---
 
