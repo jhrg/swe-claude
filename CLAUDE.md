@@ -2,17 +2,15 @@
      repo. It is a CONTRACT, not a log. If you're an editor here to update it, keep
      it short — it earns its place by being read every session, not by being complete. -->
 
-# CLAUDE.md — `{{PROJECT_NAME}}`
+# CLAUDE.md — `opendap-registry`
 
-**What this project is:** {{ONE_LINE_DESCRIPTION}}
+**The OPeNDAP Server Registry.**
 
-This repo plans work from written requirements, not from conversation memory or
-assumption. Requirements, use cases, and constraints live in `ai-docs/`. Plans that
-Claude produces live in `ai-plans/`. Every plan traces back to written IDs: a feature
-plan cites FR/NFR/UC/IC IDs, a bugfix plan cites a `BUG-###`, a task plan cites a
-`TASK-###` (bugfix and task plans may legitimately cite no FR/NFR/UC). If a *feature*
-request has no requirement backing it, that's a signal to add one — not to infer one
-silently.
+**What:** a registry of OPeNDAP *servers*, with emphasis on the
+authenticated/access-controlled ones ordinary crawling cannot find.
+
+**Produces:** `data/registry.db` and its exported `servers.json` contract — 357
+servers / 313 hosts / 131 institutions.
 
 ## Read before planning anything
 
