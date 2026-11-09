@@ -220,10 +220,10 @@ completeness grep found 11 files outside `Claude-outputs/`: `audit-plan.md`,
 **Prompt:**
 
 > 1. FEAT is the correct prefix
-> 2. Plan REady is redunant. Add Won't Do and Superseded
+> 2. Plan Ready is redundant. Add Won't Do and Superseded
 > 3. Add teh new-feature command
 > 4. Call the command `/features` and it should update statuses
-> 5. Yes, mark the FR `Implemented` when a freature reached `DOne`
+> 5. Yes, mark the FR `Implemented` when a feature reached `Done`
 
 Recorded the decisions. Statuses are now `Planned → In Progress → Done` plus
 `Won't Do` and `Superseded`. Added `/new-feature` as item 2. `/plan-feature` now sets
