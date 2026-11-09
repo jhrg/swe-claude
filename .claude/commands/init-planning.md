@@ -26,6 +26,11 @@ folded into an existing codebase.
      boundaries already fixed? (→ seed `IC-###` entries)
    - Language/stack, test command, branching convention — whatever a fresh Claude
      session would otherwise have to rediscover. (→ `{{CONVENTIONS}}` in `CLAUDE.md`)
+   - Where does the project collect proposed features before they're accepted —
+     GitHub Issues (which repo?), another tracker (which one, and what does a link
+     look like?), or nowhere in particular? (→ a "Feature proposals" line in
+     `{{CONVENTIONS}}`, so `/new-feature` knows what an `Origin:` value looks like.
+     If the answer is "nowhere", record that too; `Origin:` will usually be `TBD`.)
 
    **Do not guess these from the code.** A codebase can suggest candidates worth
    asking about, but the requirement doc should reflect what the user confirms, not
@@ -39,8 +44,9 @@ folded into an existing codebase.
    as you go — leave them only in files where nothing real was added yet, so the
    shape is still visible.
 
-5. **Do not write `ai-plans/` or `ai-docs/decisions/DECISIONS.md` content** — those fill in
-   as work actually happens, not from a first interview.
+5. **Do not write `ai-plans/`, `ai-docs/decisions/DECISIONS.md`, or
+   `ai-docs/features/FEATURE-LOG.md` content** — those fill in as work actually
+   happens, not from a first interview.
 
 6. **Report back** what was written and, just as importantly, what's still `TBD` or
    unasked — so the user can see the gaps rather than discover them later.

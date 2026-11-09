@@ -3,6 +3,7 @@
 
 # Plan: {{FEATURE NAME}}
 
+**Feature:** FEAT-###
 **Status:** Draft | In Review | Approved | In Progress | Done
 **Created:** {{DATE}}
 
