@@ -18,14 +18,17 @@ one candidate, confirm before proceeding rather than assuming.
    that as a gap to close via `/new-requirement`, not as a citation error. A task
    plan is expected to cite a `TASK-###` and, like a bugfix plan, may legitimately
    cite zero FR/NFR/UC — most maintenance work (dependency bumps, retrofitting
-   tests) doesn't need requirement backing to be legitimate.
+   tests) doesn't need requirement backing to be legitimate. A feature plan is
+   expected to name a `FEAT-###` on its `Feature:` line. If it has none (plans
+   written before the feature log existed won't), report that as a gap to close
+   with `/new-feature`, not as a citation error.
 
 2. **Extract every `FR-###` / `NFR-###` / `UC-###` / `IC-###` / `ADR-###` / `BUG-###` /
-   `TASK-###` cited anywhere in it.**
+   `TASK-###` / `FEAT-###` cited anywhere in it.**
 
 3. **Verify each cited ID actually exists** in the current `ai-docs/requirements/`,
-   `ai-docs/constraints/`, `ai-docs/decisions/DECISIONS.md`, `ai-docs/bugs/BUG-LOG.md`, and
-   `ai-docs/tasks/TASK-LOG.md` files. Flag any that don't — a typo, a renumbered ID, or an
+   `ai-docs/constraints/`, `ai-docs/decisions/DECISIONS.md`, `ai-docs/bugs/BUG-LOG.md`,
+   `ai-docs/tasks/TASK-LOG.md`, and `ai-docs/features/FEATURE-LOG.md` files. Flag any that don't — a typo, a renumbered ID, or an
    ID that was invented rather than looked up. Also flag a cited entry whose Status is
    `Deprecated` or `Superseded` (the plan rests on something no longer current), and
    any ID that exists only as an `_EXAMPLE_` placeholder.
@@ -41,7 +44,10 @@ one candidate, confirm before proceeding rather than assuming.
    automatically wrong (not every related requirement belongs in every plan) but it's
    worth surfacing. For feature plans, also check that every ID cited inline in a phase
    appears in the **Requirements traced** / **Constraints considered** sections, and
-   vice versa.
+   vice versa. If the plan names a `FEAT-###`, compare that entry's `Requirements:`
+   list with the plan's **Requirements traced** section and report any ID in one but
+   not the other. Also report it if the entry's `Plan:` field doesn't point to this
+   plan.
 
 6. **Change nothing.** This command produces a report. Whether to fix what it finds
    is the user's call, made in a separate step.

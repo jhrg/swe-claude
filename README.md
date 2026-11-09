@@ -34,6 +34,8 @@ ai-docs/
     BUG-LOG.md                               # BUG-001, ... — report → root cause → fix
   tasks/
     TASK-LOG.md                              # TASK-001, ... — scoped maintenance/engineering work
+  features/
+    FEATURE-LOG.md                           # FEAT-001, ... — accepted features, Planned → Done
   deep-dives/
     README.md                                # convention note; one file per investigation
 ai-plans/
@@ -43,7 +45,9 @@ ai-plans/
 .claude/
   commands/
     init-planning.md      # /init-planning   — first-time interview & doc seeding
+    new-feature.md           # /new-feature     — log an accepted feature as FEAT-###
     plan-feature.md        # /plan-feature    — requirements → phased plan
+    features.md              # /features        — feature board; change a feature's status
     fix-bug.md              # /fix-bug         — log a bug, find root cause, plan the fix
     deep-dive.md             # /deep-dive       — read-only code investigation, saved findings
     new-requirement.md     # /new-requirement — add an FR/NFR/UC/IC by interview
@@ -73,6 +77,17 @@ them. `/plan-task` logs it and drafts a plan that emphasizes scope (exactly what
 in, what's explicitly out) and how completeness gets checked, since this kind of
 task tends to fail quietly — a few instances missed — rather than loudly like a
 broken build.
+
+**Features get a fourth ID space, `FEAT-###`, for tracking what's planned, in flight,
+and done.** A `FEAT` doesn't state behavior itself. It groups the FR/NFR/UC IDs one
+feature delivers and links the plan that builds it. `/new-feature` logs an accepted
+feature as `Planned`, and only if real requirements back it. `/plan-feature FEAT-###`
+plans it. `/features` shows the board and moves a feature through `In Progress` to
+`Done` (or `Won't Do` / `Superseded`). On `Done`, it marks the feature's FRs
+`Implemented`. Proposed features, meaning ideas not yet accepted, deliberately stay
+outside the repo in whatever tracker the project uses. A `FEAT` entry's `Origin:`
+links back to one, and if that's a GitHub issue, `/features` offers to comment on it
+or close it.
 
 **`/deep-dive` is a standalone, read-only investigation command** for understanding
 existing code — onboarding to an unfamiliar module, answering "how does X work,"

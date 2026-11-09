@@ -1,7 +1,3 @@
-<!-- This file is auto-loaded by Claude Code at the start of every session in this
-     repo. It is a CONTRACT, not a log. If you're an editor here to update it, keep
-     it short — it earns its place by being read every session, not by being complete. -->
-
 # CLAUDE.md — `opendap-registry`
 
 **The OPeNDAP Server Registry.**
@@ -11,6 +7,14 @@ authenticated/access-controlled ones ordinary crawling cannot find.
 
 **Produces:** `data/registry.db` and its exported `servers.json` contract — 357
 servers / 313 hosts / 131 institutions.
+
+This repo plans work from written requirements, not from conversation memory or
+assumption. Requirements, use cases, and constraints live in `ai-docs/`. Plans that
+Claude produces live in `ai-plans/`. Every plan traces back to written IDs: a feature
+plan cites FR/NFR/UC/IC IDs, a bugfix plan cites a `BUG-###`, a task plan cites a
+`TASK-###` (bugfix and task plans may legitimately cite no FR/NFR/UC). If a *feature*
+request has no requirement backing it, that's a signal to add one — not to infer one
+silently.
 
 ## Read before planning anything
 
@@ -23,6 +27,7 @@ servers / 313 hosts / 131 institutions.
 | `ai-docs/decisions/DECISIONS.md` | Why past calls were made — `ADR-###` |
 | `ai-docs/bugs/BUG-LOG.md` | Deviations from intended behavior, report through root cause — `BUG-###` |
 | `ai-docs/tasks/TASK-LOG.md` | Scoped maintenance/engineering work not tied to a feature or bug — `TASK-###` |
+| `ai-docs/features/FEATURE-LOG.md` | Accepted features, `Planned` through `Done`, each grouping its FR/NFR/UC IDs and plan — `FEAT-###` |
 | `ai-docs/deep-dives/` | Persisted findings from code investigations, one file per question |
 | `ai-plans/` | Output: one plan file per feature or bug fix, each citing the IDs above |
 
@@ -36,6 +41,10 @@ for an existing note on the area before investigating it again.
   are not requirements.
 - Don't plan against a `Deprecated` entry; follow `Superseded by` to its replacement.
   Call out any `Proposed` entry as not yet confirmed rather than treating it as settled.
+- An FR/NFR with status `Proposed` is a requirement that has been drafted but not
+  confirmed. It isn't a *proposed feature*: those are ideas not yet accepted, and
+  they live outside this repo (see Conventions). A feature enters `FEATURE-LOG.md`
+  only once it's accepted.
 
 ## ID conventions
 
@@ -46,7 +55,8 @@ for an existing note on the area before investigating it again.
 - Prefixes: `FR` functional requirement, `NFR` non-functional requirement, `UC` use
   case, `IC` implementation constraint, `ADR` architecture/design decision, `BUG` a
   logged deviation from intended behavior, `TASK` a scoped maintenance/engineering
-  task that is neither new capability nor a correction.
+  task that is neither new capability nor a correction, `FEAT` an accepted feature
+  tracked through its lifecycle.
 - Every plan phase or major step should cite the ID(s) it satisfies, e.g. `(FR-012,
   UC-003)`. A step with no citation is either scope creep or an uncaptured
   requirement — flag it, don't quietly do it.
@@ -59,6 +69,14 @@ for an existing note on the area before investigating it again.
   code or stale compile-time directives, retrofitting tests onto code that predates
   them) that doesn't need requirement backing to be legitimate. Don't force it into
   a feature or bugfix plan's shape — see `ai-plans/_template-task.md`.
+- `FEAT-###` is a fourth kind of ID: it doesn't state behavior itself, it groups the
+  FR/NFR/UC IDs that one feature delivers, links the plan that builds it, and
+  tracks its status: `Planned` → `In Progress` → `Done`, or `Won't Do` /
+  `Superseded by FEAT-0XX`. Log one with `/new-feature`, only when real
+  requirements back it. Change its status only with `/features`, and only `Done`
+  when the user says so. On `Done`, `/features` sets the cited FRs to
+  `Implemented`; that's the normal way an FR becomes `Implemented`. A feature's
+  status is its lifecycle; the plan's own `Status` describes only the plan document.
 
 ## The core discipline: don't invent
 
@@ -76,7 +94,8 @@ for an existing note on the area before investigating it again.
 ## Filling in templates and logs
 
 When you create a plan or log entry from a template: set `Status` to the single
-starting value (`Draft` for plans, `Open` for bug and task log entries) — never copy the `A | B | C`
+starting value (`Draft` for plans, `Open` for bug and task log entries, `Planned` for
+feature log entries) — never copy the `A | B | C`
 option list; set `Created` / dates to today's actual date (run `date +%F` if you
 don't have it — never guess); and leave genuinely unknown fields `TBD`.
 
@@ -92,8 +111,8 @@ summary of what was done and what's left. Don't edit or reorder earlier entries.
 
 ## Branch & working-tree discipline
 
-Before making any change for a plan, task, or bug — a new plan file, a BUG-LOG or
-TASK-LOG entry, a work-log entry, or code — the working tree must be clean and the
+Before making any change for a plan, task, bug, or feature — a new plan file, a
+BUG-LOG, TASK-LOG, or FEATURE-LOG entry or status change, a work-log entry, or code — the working tree must be clean and the
 change must happen on its own branch, never directly on `main`. This applies
 uniformly to docs and code: drafting a plan, logging a bug/task, and implementing
 one all happen on that item's branch.
@@ -114,7 +133,9 @@ one all happen on that item's branch.
 | Command | Does |
 |---|---|
 | `/init-planning` | First-time setup: interviews you and seeds the requirement docs for an existing or new codebase |
-| `/plan-feature <name or description>` | Reads the requirement docs, drafts a phased implementation plan in `ai-plans/`, citing IDs throughout |
+| `/new-feature <name or description>` | Logs an accepted feature as `FEAT-###` (`Planned`), citing the FR/NFR/UC IDs that back it |
+| `/plan-feature <FEAT-### or description>` | Reads the requirement docs, drafts a phased implementation plan in `ai-plans/`, citing IDs throughout, and links it from the `FEAT` entry |
+| `/features [FEAT-### <status>]` | Shows the feature board by status; with arguments, changes a feature's status (on `Done`, marks its FRs `Implemented`) |
 | `/fix-bug <description or BUG-###>` | Logs a bug (or resumes one), investigates root cause read-only, drafts a bugfix plan |
 | `/deep-dive <area or question>` | Read-only investigation of existing code; checks it against the requirement docs and saves findings |
 | `/new-requirement` | Interviews you to add a new FR / NFR / UC / IC entry with the next sequential ID |
@@ -130,6 +151,10 @@ asked to review or tighten those docs — it reports findings and never edits.
 
 {{CONVENTIONS — e.g. language/stack, branching model, where code actually lives, test
 command, anything a fresh Claude session needs to stop guessing}}
+
+**Feature proposals:** {{where proposed features are collected before they're
+accepted — e.g. GitHub Issues in OWNER/REPO, or "nowhere in particular" — so a
+`FEAT` entry's `Origin:` has a known shape}}
 
 ## Plan mode
 

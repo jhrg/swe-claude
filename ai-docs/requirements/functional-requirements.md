@@ -6,7 +6,10 @@
 
 Convention: `FR-###`, zero-padded, assigned sequentially by next-highest-number.
 Priority: `Must` / `Should` / `Could` (MoSCoW). Status: `Proposed` / `Approved` /
-`Implemented` / `Deprecated` / `Superseded by FR-0XX`.
+`Implemented` / `Deprecated` / `Superseded by FR-0XX`. `Proposed` means drafted but
+not yet confirmed. It isn't a proposed *feature*; those live outside this repo until
+accepted. `Implemented` is normally set by `/features` when a `FEAT` that cites the
+FR reaches `Done`.
 
 | ID | Requirement | Priority | Related Use Cases | Status |
 |---|---|---|---|---|
