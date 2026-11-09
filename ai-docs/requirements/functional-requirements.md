@@ -13,7 +13,10 @@ FR reaches `Done`.
 
 | ID | Requirement | Priority | Related Use Cases | Status |
 |---|---|---|---|---|
-| _EXAMPLE_ | Users can reset a forgotten password via an emailed, time-limited link | Must | UC-EXAMPLE | _delete this row_ |
+| FR-001 | The system harvests OPeNDAP server URLs from public catalogs (NASA CMR, ERDDAP server lists, ESGF) and normalizes each to a server base URL, stored as one registry row per server | Must | UC-001 | Approved |
+| FR-002 | The system discovers OPeNDAP servers that no catalog lists from internet-wide scan data (Censys) and records them as candidates | Must | UC-001 | Approved |
+| FR-003 | The system verifies each registered server with an unauthenticated probe and classifies its software (Hyrax / THREDDS / ERDDAP / other) and access status (open / protected / dead / unknown) | Must | UC-001, UC-003 | Approved |
+| FR-004 | The system exports the registry as the `servers.json` contract consumed by `opendap-dataset-catalog`, and produces summary reports (`--report`, `--list`) | Must | UC-001, UC-002 | Approved |
 
 <!-- Add new rows via /new-requirement, or by hand — keep the table format. Each
      requirement should be a single testable statement, not a paragraph. If it needs

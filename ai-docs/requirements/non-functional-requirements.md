@@ -11,7 +11,8 @@ Availability, Scalability, Usability, Maintainability, Compliance, Observability
 
 | ID | Category | Requirement | Measurable Target | Priority | Status |
 |---|---|---|---|---|---|
-| _EXAMPLE_ | Performance | Read-endpoint latency stays low under normal load | p95 < 300 ms at 100 req/s | Must | _delete this row_ |
+| NFR-001 | Reliability | The probe's request-rate limit toward probed servers is defined in the repository (code or checked-in config), not left to ad-hoc command-line choice | Limit value TBD | TBD | Proposed |
+| NFR-002 | Maintainability | The test suite runs entirely offline | `unittest discover -s tests` passes with no network access | TBD | Approved |
 
 <!-- If you genuinely can't state a measurable target yet, write TBD in that column
      rather than a vague phrase — TBD is honest and searchable; "reasonably fast"
