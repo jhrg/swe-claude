@@ -149,12 +149,21 @@ asked to review or tighten those docs — it reports findings and never edits.
 
 ## Conventions
 
-{{CONVENTIONS — e.g. language/stack, branching model, where code actually lives, test
-command, anything a fresh Claude session needs to stop guessing}}
+- **Stack:** Python 3.9.6 in `.venv`, run with `-W ignore` (D13). Minimal
+  dependencies; storage is the stdlib `sqlite3` module.
+- **Where code lives:** `src/` (the pipeline), `schema.sql`, `tests/`; data and
+  caches in `data/`.
+- **Tests:** `.venv/bin/python -m unittest discover -s tests` — all offline.
+- **Censys sweep:** must run under `zsh -i` so `CENSYS_PAT` (from `~/.zshrc`) is in
+  scope.
+- **Branches:** `jhrg/<slug>`.
+- **Legacy spine files** (`DECISIONS.md` D1–D28, `TASKS.md`, `PLAN.md`, `STATUS.md`,
+  `LOG.md` at the repo top level) are reference only — they are not migrated into
+  `ai-docs/`. `D##` refers to the legacy `DECISIONS.md`; `ADR-###` to
+  `ai-docs/decisions/DECISIONS.md`.
 
-**Feature proposals:** {{where proposed features are collected before they're
-accepted — e.g. GitHub Issues in OWNER/REPO, or "nowhere in particular" — so a
-`FEAT` entry's `Origin:` has a known shape}}
+**Feature proposals:** GitHub Issues in `OPENDAP/opendap-registry` — an `Origin:`
+looks like `https://github.com/OPENDAP/opendap-registry/issues/N`.
 
 ## Plan mode
 
