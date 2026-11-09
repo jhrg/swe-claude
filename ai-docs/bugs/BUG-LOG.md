@@ -14,30 +14,38 @@ deployed behavior, not something to self-report from having written a fix plan.
 
 ---
 
-## BUG-EXAMPLE — Password reset link accepted after expiry
+## BUG-001 — User-Agent contact is a placeholder URL that doesn't exist
 
-*(delete this section once you've seen the shape)*
-
-**Severity:** High
+**Severity:** Medium
 **Status:** Fix Planned
-**Reported:** YYYY-MM-DD
-**Related requirements:** FR-EXAMPLE, UC-EXAMPLE (violates the "time-limited" part of both)
-**Fix plan:** `ai-plans/bugfix-reset-link-expiry-plan.md`
+**Reported:** 2026-11-08
+**Related requirements:** IC-004 (polite HTTP: descriptive User-Agent). No FR/NFR/UC
+documents the contact-in-User-Agent behavior.
+**Fix plan:** `ai-plans/bugfix-placeholder-contact-url-plan.md`
 
 **Reproduction steps:**
-1. Request a password reset
-2. Wait past the stated expiry window (currently 1 hour)
-3. Follow the link anyway
+1. From the repo root, run
+   `.venv/bin/python -c "from src import probe; print(probe.USER_AGENT)"`
+2. Observe `opendap-registry-probe/0.1 (+https://github.com/your-org/opendap-registry)`
+3. Open `https://github.com/your-org/opendap-registry` and get a 404 (no such repo)
 
-**Expected behavior:** Link is rejected with an "expired, request a new one" message
-(per FR-EXAMPLE).
+The same placeholder appears in the User-Agent of `harvest_cmr`, `harvest_erddap`,
+`harvest_esgf` and `fingerprint`, so it goes to every probed server, catalog API and
+Censys.
 
-**Actual behavior:** Link still succeeds and resets the password.
+**Expected behavior:** The User-Agent carries a working contact, a project email
+address (exact address TBD), so a server operator can identify the traffic and reach
+us (IC-004).
 
-**Root cause:** Expiry is checked against token creation time using the token's own
-embedded claim, but that claim is client-suppliable and never verified against issue
-time recorded server-side. *(Fill this in during investigation — leave `TBD` until
-actually found in the code, not guessed from symptoms.)*
+**Actual behavior:** The User-Agent names a placeholder GitHub URL that does not
+resolve.
+
+**Root cause:** `src/net.py:17` defines
+`CONTACT = "https://github.com/your-org/opendap-registry"`. It is scaffold text, there
+since the first implementation commit (`108e788`, 2026-07-24) and never replaced. Every
+module builds its `USER_AGENT` from `net.CONTACT` (`probe.py:57`, `harvest_cmr.py:39`,
+`harvest_erddap.py:39`, `harvest_esgf.py:46`, `fingerprint.py:49`). No test checks the
+User-Agent, so nothing flagged the placeholder.
 
 ---
 
