@@ -41,6 +41,24 @@ link sent to their registered email address.
 
 ---
 
+## FEAT-001 — Common Crawl seed URLs
+
+**Status:** Planned
+**Created:** 2026-11-09
+**Requirements:** FR-001, FR-002, FR-003, UC-001, NFR-001 (Proposed)
+**Constraints:** IC-001, IC-002, IC-003, IC-004 (DuckDB's own HTTP client bypasses `src/net.py` — tension to resolve in planning)
+**Plan:** None yet
+**Origin:** https://github.com/OPENDAP/opendap-registry/issues/1
+
+**Summary:** Use the Common Crawl URL index, queried with DuckDB, as a second source
+of seed URLs alongside Censys, then crawl up from each URL to find its server root
+and record it as a candidate.
+
+**Status history:**
+- 2026-11-09 — logged as `Planned`
+
+---
+
 <!-- Add new features via /new-feature, and change status via /features — keep the
      section format: metadata lines, then Summary, then Status history (append-only,
      oldest first). Requirements must list real FR/NFR/UC IDs; a feature with none
