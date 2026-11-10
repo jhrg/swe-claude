@@ -11,8 +11,8 @@ Availability, Scalability, Usability, Maintainability, Compliance, Observability
 
 | ID | Category | Requirement | Measurable Target | Priority | Status |
 |---|---|---|---|---|---|
-| NFR-001 | Reliability | The probe's request-rate limit toward probed servers is defined in the repository (code or checked-in config), not left to ad-hoc command-line choice | Limit value TBD | TBD | Proposed |
-| NFR-002 | Maintainability | The test suite runs entirely offline | `unittest discover -s tests` passes with no network access | TBD | Approved |
+| NFR-001 | Reliability | The probe's request-rate limit toward probed servers is defined in the repository (code or checked-in config), not left to ad-hoc command-line choice | Limit value 0.5 seconds/request | Should | Approved |
+| NFR-002 | Maintainability | The test suite runs entirely offline | `unittest discover -s tests` passes with no network access | Must | Approved |
 
 <!-- If you genuinely can't state a measurable target yet, write TBD in that column
      rather than a vague phrase — TBD is honest and searchable; "reasonably fast"

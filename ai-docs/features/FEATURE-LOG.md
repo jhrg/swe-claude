@@ -47,7 +47,7 @@ link sent to their registered email address.
 **Created:** 2026-11-09
 **Requirements:** FR-001, FR-002, FR-003, UC-001, NFR-001 (Proposed)
 **Constraints:** IC-001, IC-002, IC-003, IC-004 (DuckDB's own HTTP client bypasses `src/net.py` — tension to resolve in planning)
-**Plan:** None yet
+**Plan:** `ai-plans/common-crawl-seed-urls-plan.md`
 **Origin:** https://github.com/OPENDAP/opendap-registry/issues/1
 
 **Summary:** Use the Common Crawl URL index, queried with DuckDB, as a second source

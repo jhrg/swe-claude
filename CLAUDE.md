@@ -149,7 +149,7 @@ asked to review or tighten those docs — it reports findings and never edits.
 
 ## Conventions
 
-- **Stack:** Python 3.9.6 in `.venv`, run with `-W ignore` (D13). Minimal
+- **Stack:** Python 3.11 in `.venv`, run with `-W ignore` (D13). Minimal
   dependencies; storage is the stdlib `sqlite3` module.
 - **Where code lives:** `src/` (the pipeline), `schema.sql`, `tests/`; data and
   caches in `data/`.
