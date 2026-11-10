@@ -24,8 +24,10 @@ stage a real dataset to test for gating.
   unauthenticated probe. The harvester never sets `software` or `auth_status`.
 - UC-001 — step 3 ("System adds scan-derived candidates") gains a second source.
   UC-001 names only Censys today. See Open question 5.
-- NFR-001 (**Proposed**, not yet confirmed; limit value TBD) — governs the request rate
-  of any HTTP "crawl up" in Phase 2, and of the probe run that follows each harvest.
+- NFR-001 (Approved, Should; 0.5 seconds per request) — sets the request rate for
+  Phase 2's HTTP crawl-up, and applies to the probe run that follows each harvest.
+  The probe currently sets no pause (`net.get` defaults to `pause=0.0`). See Out of
+  scope.
 - NFR-002 — every new test runs offline from fixtures. DuckDB is never imported by
   the test suite. *(NFR-002 isn't in FEAT-001's `Requirements:` list. It's cited here
   because the plan adds tests. See the plan summary.)*
@@ -37,7 +39,7 @@ stage a real dataset to test for gating.
   This covers the probe and any Phase 2 crawl-up request. No new code path sends
   headers or cookies to a probed host. Respected.
 - IC-002 (never crawl protected content) — Phase 1 "crawl up" is pure string
-  normalization with zero requests. Phase 2, if it is built, may only request
+  normalization with zero requests. Phase 2's HTTP crawl-up may only request
   *ancestors* of a URL already in hand. It never follows links or listings into
   descendants, and it stops at the first DAP signature or any 401/403/login
   redirect. The probe's content stage already rewrites data URLs (`.dods`, `.ascii`,
@@ -48,13 +50,19 @@ stage a real dataset to test for gating.
   input file and crawl ID with its counts, so every number is tied to a run. A
   `--dry-run` reports counts without writing. Default caps are left TBD until a
   measured dry run, not estimated. Respected.
-- IC-004 (keys from env only; polite HTTP; **all HTTP goes through `src/net.py`**) —
-  Phase 1 makes no network calls (it reads a local file), and Phase 2 uses `net.py`.
-  **Phase 3 conflicts with IC-004 and is flagged, not worked around.** DuckDB's
-  `httpfs` extension is its own HTTP client, so a query run from this repo bypasses
-  `net.py`. The reference script (`cc_dap_discover.py`) also uses `PROVIDER
-  credential_chain`, which reads `~/.aws/credentials` and other non-env sources —
-  not "environment only". Phase 3 is blocked until Open question 2 is decided.
+- IC-005 (no secrets in any committable file; no secrets as CLI arguments or in logs;
+  polite HTTP; HTTP to probed servers goes through `net.py`, and other clients may
+  use their own stack with a descriptive User-Agent). It supersedes IC-004, whose
+  "all HTTP through `net.py`" and "env only" rules would have blocked Phase 3.
+  - Phase 1 makes no network calls; it reads a local file.
+  - Phase 2's crawl-up goes to probed hosts, so it uses `net.py`.
+  - Phase 3's DuckDB `httpfs` traffic goes to Common Crawl, not to a probed server,
+    so its own HTTP client is allowed. It sets `custom_user_agent`. It reads S3
+    credentials with `PROVIDER credential_chain`, which may use `~/.aws`. No key,
+    token or `CREATE SECRET` literal appears in code, SQL, fixtures or docs.
+  - Generated files go only under the git-ignored `data/cache/`.
+
+  Respected.
 
 No accepted ADRs exist in `ai-docs/decisions/DECISIONS.md` (only the example), so
 none is contradicted. Legacy D6, D14, D25 and D28 are honoured: harvesters record
@@ -103,49 +111,69 @@ Steps:
 **Risks:** Common Crawl is noisy. `/dap/` and bare `.das`/`.dds` URLs with no
 service marker collapse to the host root, and that can mean thousands of
 non-OPeNDAP hosts. The cap and the probe limit the cost, but probe load grows with
-the number of admitted candidates (NFR-001 is still TBD). The `.html` URLs that
+the number of admitted candidates. The probe doesn't yet pace itself to NFR-001's
+0.5 s/request (see Out of scope). The `.html` URLs that
 crawlers do see (e.g. `.../erddap/griddap/x.html`) normalize correctly, so recall
 from marker-bearing URLs should be good.
 
-### Phase 2 — HTTP crawl-up for URLs without a marker (conditional)
+### Phase 2 — HTTP crawl-up to find the service root
 
-**Goal:** For seed URLs with no service marker, find the actual service root by
-requesting successive *parent* paths. Build this only if Phase 1's measurements
-show it's needed.
-**Satisfies:** FR-002, FR-001, FR-003, NFR-001 (Proposed)
+**Goal:** The user confirmed on 2026-11-09 that issue #1's "crawl up" means HTTP
+requests. For seed URLs with no service marker, which Phase 1 can only reduce to
+the host root, find the real service root by requesting successive *parent*
+paths of the seed URL.
+**Satisfies:** FR-002, FR-001, FR-003, NFR-001
 
 Steps:
-1. Measure after Phase 1. Count the `commoncrawl` servers that sit at a host root,
-   came from a sample URL with a DAP suffix, and that the probe left `unknown` or
-   non-DAP even after the D28 subpath fallback. If that count is negligible, mark
-   this phase not needed in the work log and stop.
-2. Otherwise add a bounded walk. For each such seed, request the parent
-   directories of its path, longest first, through `net.session()`, with a hard
-   cap of N requests per host (N TBD). Stop at the first DAP signature, which
-   becomes the base URL, or at any 401/403/login redirect, which is recorded and
-   not followed. Never request children or follow links (IC-002).
-3. The rate limit and per-host cap are checked into code, not left to the command
-   line (NFR-001).
-4. Offline tests drive the walk against canned responses.
+1. Choose which seeds to walk: Common Crawl URLs with no `SERVICE_MARKERS`
+   segment, such as `/dap/` mounts or bare `.dds`/`.das` files. Seeds with a
+   marker already reach their service root offline in Phase 1.
+2. For each one, request the parent directories of its path, deepest first,
+   through `net.session()` (IC-001). Use a hard cap of N requests per host (N
+   TBD), and walk each host once even if it has several seeds. Reuse the probe's
+   classification signatures to recognise a DAP root, rather than a second copy.
+3. Stop at the first DAP signature, which becomes the candidate's base URL. Also
+   stop at any 401/403 or login redirect: record it and don't follow it. Never
+   request anything below a seed or follow links, listings or catalogs (IC-002).
+   If the walk finds nothing, fall back to Phase 1's host-root candidate, so the
+   probe still sees it and nothing is dropped silently.
+4. If the base URL found has no service marker, the registry needs to accept it.
+   The upsert takes any base URL, but a deep root like `https://h/pub/dap/` won't
+   match `probe._paths_for`'s marker-based ordering. Check that the probe's
+   generic `PROBE_PATHS` work against such a root, and record the result.
+5. Define the pacing as a module constant: 0.5 s between requests, passed as
+   `net.get(..., pause=...)` (NFR-001). Define the per-host cap the same way. Neither
+   comes from the command line. Each host's walk is sequential, so at minimum
+   requests to any one host are 0.5 s apart. Whether the limit is also global
+   across concurrent workers is Open question 6. Expose `--no-crawl-up` to skip
+   the phase.
+6. Offline tests drive the walk against canned responses (NFR-002). Cover:
+   ancestor order, the per-host cap, stopping on 401/403/redirect, the host-root
+   fallback, and that no request goes below the seed.
 
 **Risks:** This is the one place the feature generates new traffic to third-party
-hosts. It is blocked on Open question 1 and depends on NFR-001's limit, which is
-still TBD.
+hosts. The volume is roughly the number of marker-less seed hosts times N (N is
+still TBD). At 0.5 s/request, run time also scales with that volume divided by the
+number of workers.
 
-### Phase 3 — Run the Common Crawl index query from this repo (blocked)
+### Phase 3 — Run the Common Crawl index query from this repo
 
 **Goal:** Replace the out-of-band step with an in-repo `--query CRAWL` mode that
 runs the DuckDB query from `cc_dap_discover.py` and feeds Phase 1 directly.
 **Satisfies:** FR-002, UC-001
 
-Steps (depend on Open question 2):
+Steps (IC-005):
 1. Add `duckdb` as an optional dependency in `requirements.txt`, imported lazily
    inside the query function so the test suite never needs it (NFR-002).
 2. Move the query's URL regex into the module, shared with Phase 1's filter so the
    two can't drift.
-3. Configure access as decided under Open question 2. Whatever the decision, never
-   use `PROVIDER credential_chain`. Set a descriptive `custom_user_agent`.
-4. Offline tests cover only SQL construction. The query itself is checked by a
+3. Read the S3 index with DuckDB's `PROVIDER credential_chain`, which may use
+   `~/.aws`, as in the reference script. No key ID, secret or token appears in any
+   repo file, CLI argument or log line. Set a descriptive `custom_user_agent`.
+4. Write intermediate output, such as a saved candidate list, only under
+   `data/cache/`, which is already git-ignored. Never write it to the repo root,
+   as the reference script does.
+5. Offline tests cover only SQL construction. The query itself is checked by a
    recorded manual run (IC-003).
 
 **Risks:** Each crawl's index is tens of GB of Parquet scanned client-side, which
@@ -166,16 +194,10 @@ Steps:
 
 ## Open questions
 
-1. **What does "crawl up" mean in issue #1?** Is it Phase 1's offline truncation
-   at the service-root marker, or HTTP requests up parent paths? This blocks
-   Phase 2 only. Phase 1's measurement should inform the answer.
-2. **How should Phase 3 meet IC-004?** Options: (a) don't do Phase 3, and keep the
-   query out of the repo with Phase 1 as the integration point, which avoids the
-   conflict entirely; (b) read the index anonymously over
-   `https://data.commoncrawl.org/` with no AWS credentials, getting the file list
-   through `net.py`, with DuckDB still doing the Parquet reads — this needs an ADR
-   recording an explicit IC-004 exception for DuckDB's HTTP client; (c) S3 with
-   keys from env vars only, which needs the same exception. This blocks Phase 3.
+1. ~~**What does "crawl up" mean in issue #1?**~~ **Resolved 2026-11-09:** it means
+   HTTP requests up parent paths, so Phase 2 is committed work.
+2. ~~**IC-004 revision.**~~ **Resolved 2026-11-09:** IC-005 supersedes IC-004, so
+   Phase 3 is unblocked.
 3. **Which crawls, and how many?** One crawl to start, as in the reference script,
    or several for recall? It doesn't block Phase 1, which takes any file and a
    `--crawl` tag.
@@ -184,8 +206,13 @@ Steps:
 5. **Should FR-002 be broadened** to cover web-crawl data explicitly, or is
    "internet-wide scan data" meant broadly? This blocks Phase 4 and affects
    traceability, not code.
-6. **What is NFR-001's rate limit?** Still TBD and `Proposed`. It blocks Phase 2's
-   rate setting and matters for probing a large Phase 1 batch.
+6. **What is NFR-001's 0.5 seconds/request measured against?** Per worker or per
+   host, which the current plan meets by pacing each sequential walk? Or global
+   across all concurrent workers, which would need a shared limiter? The second is
+   about eight times slower with the probe's default eight workers. Phase 2 can be
+   built per host now. If the answer is global, the limiter changes.
+7. **Per-host crawl-up cap N.** TBD. It doesn't block writing Phase 2. Set it from
+   the depth of marker-less seed paths seen in Phase 1's dry run.
 
 ## Out of scope
 
@@ -195,6 +222,10 @@ Steps:
   evidence of software or access. Only the probe classifies (IC-003).
 - Changes to the probe's classification logic, or to the `servers.json` contract.
   `source_tags` already carries any new source name.
+- Making the existing probe meet NFR-001. It currently calls `net.get` with no
+  pause. That's a deviation in code this feature doesn't own, and it should be
+  logged separately with `/fix-bug`. Until it's fixed, the probe run after a large
+  Common Crawl import goes faster than NFR-001 allows.
 - Athena or any paid-query setup.
 - Shodan, or new Censys queries.
 
@@ -211,3 +242,30 @@ Re-read the requirement, constraint and ADR docs. Read `src/fingerprint.py`
 issue's `cc_dap_discover.py`. Drafted four phases: Phase 1 is ready, Phase 2 is
 conditional on a measurement, Phase 3 is blocked on an IC-004 decision, and Phase 4
 covers requirement wording. Nothing is implemented.
+
+### 2026-11-09 23:25 MST — Revised: crawl-up confirmed, IC-004 restated
+
+**Prompt:**
+
+> Phase 2 does mean crawl up
+> Phase 3 Not all HTTP access has to go through net.py and we can read credentials from ~/.aws. The real constriant is on files in the repo because thaey can be checked into GitHub by acident.
+
+Phase 2 is now committed, with no measurement gate. It defines which seeds to walk,
+falls back to the host root when the walk finds nothing, and checks that the probe
+handles a root with no service marker. Phase 3 now uses `credential_chain` with no
+secrets in repo files and output under `data/cache/`. It's blocked only on revising
+IC-004's text, which hasn't been done. Open question 1 is resolved and Open
+question 2 is restated.
+
+### 2026-11-09 23:30 MST — Revised against IC-005 and the now-Approved NFR-001
+
+**Prompt:**
+
+> /plan-feature FEAT-001
+
+Re-read the requirement, constraint and ADR docs. IC-004 is superseded by IC-005,
+so Phase 3 is unblocked and the constraint section is rewritten around IC-005.
+NFR-001 is now Approved at 0.5 s/request. Phase 2 sets that pacing as a module
+constant and gets a new Open question 6 on whether the limit is per host or
+global. Open question 2 is resolved and Open question 7 (crawl-up cap N) is added.
+The probe not pacing itself to NFR-001 is flagged as out of scope, for `/fix-bug`.
