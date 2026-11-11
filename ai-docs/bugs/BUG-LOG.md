@@ -33,8 +33,8 @@ The same placeholder appears in the User-Agent of `harvest_cmr`, `harvest_erddap
 `harvest_esgf` and `fingerprint`, so it goes to every probed server, catalog API and
 Censys.
 
-**Expected behavior:** The User-Agent carries a working contact, a project email
-address (exact address TBD), so a server operator can identify the traffic and reach
+**Expected behavior:** The User-Agent carries a working contact, the project email
+address `registry@opendap.org`, so a server operator can identify the traffic and reach
 us (IC-004).
 
 **Actual behavior:** The User-Agent names a placeholder GitHub URL that does not

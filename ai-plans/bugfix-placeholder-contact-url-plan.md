@@ -35,26 +35,18 @@ to Censys. No test looks at the User-Agent, which is why nobody noticed.
 
 ## Fix approach
 
-1. **Decide the address (blocking, TBD).** You chose an email address, but the exact
-   address hasn't been given yet. Also undecided is whether it replaces the URL or sits
-   next to it, for example `(+https://github.com/OPENDAP/opendap-registry;
-   mailto:<address>)`. Whatever goes here is sent to every server and is public in the
-   source, so a role or list address will get less spam than a personal one.
-
-   *Update 2026-11-10:* the form is decided: repo URL plus email,
-   `(+https://github.com/OPENDAP/opendap-registry; mailto:<address>)`. The address
-   is still TBD. On 2026-11-10 that URL returned HTTP 404 to an unauthenticated
-   request, so the repo is private or doesn't exist. Until it's public, the URL half
-   is a second dead contact, and verification step 3 below will fail. Two ways to
-   unblock it: make the repo public before this ships, or fall back to email only.
-2. **Change the single source.** Set `CONTACT` in `src/net.py` to the chosen value. The
-   five `USER_AGENT` f-strings stay as they are, because they already read
-   `net.CONTACT`. The `+` prefix is the usual convention for a URL; if `CONTACT`
-   becomes a bare email, change the f-strings to a `mailto:` form or drop the `+` so
-   the result is still well formed.
+1. **The contact (decided 2026-11-10).** Email only: `registry@opendap.org`, a role
+   address, since the value goes to every server and is public in the source. An
+   earlier choice of repo URL plus email was dropped because
+   `https://github.com/OPENDAP/opendap-registry` returns 404 to anyone not logged in.
+2. **Change the single source.** Set `CONTACT = "mailto:registry@opendap.org"` in
+   `src/net.py`. The five `USER_AGENT` f-strings already read `net.CONTACT`; drop the
+   `+` from each one, since that prefix is the convention for a web URL. The result
+   is, for example, `opendap-registry-probe/0.1 (mailto:registry@opendap.org)`.
 3. **Add a regression test** (offline, per NFR-002). It asserts that `net.CONTACT`
-   doesn't contain `your-org` and matches the agreed form (an email, or URL plus
-   email), and that each module's `USER_AGENT` contains `net.CONTACT`.
+   doesn't contain `your-org` and equals `mailto:registry@opendap.org`, and that each
+   of the five modules' `USER_AGENT` contains `(mailto:registry@opendap.org)` with no
+   `+` before it.
 
 This is the narrow fix, and that's enough here: the defect is one constant, and it
 already has a single point of definition. Making the contact configurable through an
@@ -66,17 +58,16 @@ open the door to a run that silently has no contact.
 Low. `CONTACT` is only used in User-Agent strings. No test fixture matches on the User-
 Agent (`tests/` has no reference to `USER_AGENT` or `CONTACT`), and no server-side
 behavior we depend on keys off it. The one real risk is a badly formed User-Agent if
-the email goes in with the `+` URL prefix still in front of it. Step 2 handles that.
+a `+` is left in front of the `mailto:`. Step 2 removes it, and step 3 checks for it.
 
 ## Verification
 
 1. Re-run the reproduction from BUG-001:
    `.venv/bin/python -c "from src import probe; print(probe.USER_AGENT)"`. The output
-   now shows the agreed contact and no `your-org`.
+   now shows `opendap-registry-probe/0.1 (mailto:registry@opendap.org)` and no
+   `your-org`.
 2. Do the same for `harvest_cmr`, `harvest_erddap`, `harvest_esgf` and `fingerprint`.
-3. If a URL is kept, open it and confirm it resolves for an outside user. A private
-   repo returns a 404 to them.
-4. `.venv/bin/python -m unittest discover -s tests` passes offline, including the new
+3. `.venv/bin/python -m unittest discover -s tests` passes offline, including the new
    test.
 
 ## Out of scope
@@ -113,3 +104,27 @@ contact form, repo URL plus email, and the address is still TBD.
 `https://github.com/OPENDAP/opendap-registry` returned 404 when fetched without
 login, which is now noted under Fix approach step 1. Still blocked on (a) the email
 address and (b) whether the repo goes public or the URL is dropped.
+
+### 2026-11-10 17:52 MST — Contact address given
+
+**Prompt:**
+
+> The contact email is `registry@opendap.org`
+
+Recorded `registry@opendap.org` as the contact address in Fix approach step 1, so the
+email blocker is cleared. One blocker remains:
+`https://github.com/OPENDAP/opendap-registry` returns 404 without login. Either the
+repo goes public before this ships, or `CONTACT` falls back to
+`mailto:registry@opendap.org` alone.
+
+### 2026-11-10 17:53 MST — Contact form changed to email only; plan unblocked
+
+**Prompt:**
+
+> Use the email alone
+
+Dropped the repo URL (it 404s without login). Rewrote Fix approach step 1 as decided:
+`CONTACT = "mailto:registry@opendap.org"`, with the `+` removed from the five
+User-Agent f-strings. Tightened the regression test and the verification steps to
+match, and removed the "open the URL" check. Nothing blocks the plan now; it's ready
+to implement.
