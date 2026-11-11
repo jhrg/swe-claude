@@ -1,7 +1,7 @@
 # Bugfix Plan: User-Agent contact is a placeholder URL that doesn't exist
 
 **Bug:** BUG-001
-**Status:** Draft
+**Status:** Approved
 **Created:** 2026-11-08
 
 ## Summary
@@ -40,6 +40,13 @@ to Censys. No test looks at the User-Agent, which is why nobody noticed.
    next to it, for example `(+https://github.com/OPENDAP/opendap-registry;
    mailto:<address>)`. Whatever goes here is sent to every server and is public in the
    source, so a role or list address will get less spam than a personal one.
+
+   *Update 2026-11-10:* the form is decided: repo URL plus email,
+   `(+https://github.com/OPENDAP/opendap-registry; mailto:<address>)`. The address
+   is still TBD. On 2026-11-10 that URL returned HTTP 404 to an unauthenticated
+   request, so the repo is private or doesn't exist. Until it's public, the URL half
+   is a second dead contact, and verification step 3 below will fail. Two ways to
+   unblock it: make the repo public before this ships, or fall back to email only.
 2. **Change the single source.** Set `CONTACT` in `src/net.py` to the chosen value. The
    five `USER_AGENT` f-strings stay as they are, because they already read
    `net.CONTACT`. The `+` prefix is the usual convention for a URL; if `CONTACT`
@@ -93,3 +100,16 @@ the email goes in with the `+` URL prefix still in front of it. Step 2 handles t
 Logged BUG-001 (Medium, cites IC-004 only). Traced the root cause to scaffold text in
 `src/net.py:17`, which reaches all five User-Agents. Drafted a narrow fix plus a
 regression test. Blocked on the exact contact email address.
+
+### 2026-11-10 17:44 MST — Resumed; contact form decided
+
+**Prompt:**
+
+> /fix-bug BUG-001
+
+Picked up BUG-001 at `Fix Planned`; root cause and plan were already in place.
+Created branch `jhrg/placeholder-contact-url` off `main`. The user picked the
+contact form, repo URL plus email, and the address is still TBD.
+`https://github.com/OPENDAP/opendap-registry` returned 404 when fetched without
+login, which is now noted under Fix approach step 1. Still blocked on (a) the email
+address and (b) whether the repo goes public or the URL is dropped.

@@ -1,7 +1,7 @@
 # Plan: Common Crawl seed URLs
 
 **Feature:** FEAT-001
-**Status:** Draft
+**Status:** Approved
 **Created:** 2026-11-09
 
 ## Summary
@@ -29,8 +29,13 @@ stage a real dataset to test for gating.
   The probe currently sets no pause (`net.get` defaults to `pause=0.0`). See Out of
   scope.
 - NFR-002 — every new test runs offline from fixtures. DuckDB is never imported by
-  the test suite. *(NFR-002 isn't in FEAT-001's `Requirements:` list. It's cited here
-  because the plan adds tests. See the plan summary.)*
+  the test suite.
+- NFR-003 (**Proposed**, Should) — every operator-run stage is documented in
+  `README.md` with its command, the credentials it needs (named only) and its
+  inputs and outputs. Phase 4 documents the new stages.
+- NFR-004 (**Proposed**, Should) — candidate-URL signatures are defined once and
+  shared by every filter. Phase 3 shares the query's pattern with Phase 1's import
+  filter and adds a test that they agree.
 
 ## Constraints considered
 
@@ -61,8 +66,13 @@ stage a real dataset to test for gating.
     credentials with `PROVIDER credential_chain`, which may use `~/.aws`. No key,
     token or `CREATE SECRET` literal appears in code, SQL, fixtures or docs.
   - Generated files go only under the git-ignored `data/cache/`.
+  - The "descriptive User-Agent" part depends on **BUG-001** (`Fix Planned`):
+    `net.CONTACT`, which is embedded in every User-Agent, is a placeholder URL
+    that doesn't exist. Phase 2 inherits it through `net.session()`. Phase 3 builds
+    its `custom_user_agent` from the same `net.CONTACT`, not a second copy.
 
-  Respected.
+  Respected once BUG-001 is fixed. Until then, Phase 2's traffic carries a broken
+  contact URL. See the Phase 2 risks.
 
 No accepted ADRs exist in `ai-docs/decisions/DECISIONS.md` (only the example), so
 none is contradicted. Legacy D6, D14, D25 and D28 are honoured: harvesters record
@@ -154,22 +164,27 @@ Steps:
 **Risks:** This is the one place the feature generates new traffic to third-party
 hosts. The volume is roughly the number of marker-less seed hosts times N (N is
 still TBD). At 0.5 s/request, run time also scales with that volume divided by the
-number of workers.
+number of workers. Its User-Agent carries `net.CONTACT`, a placeholder URL
+(BUG-001). Fix BUG-001 before running Phase 2 against real hosts, so operators can
+reach us.
 
 ### Phase 3 — Run the Common Crawl index query from this repo
 
 **Goal:** Replace the out-of-band step with an in-repo `--query CRAWL` mode that
 runs the DuckDB query from `cc_dap_discover.py` and feeds Phase 1 directly.
-**Satisfies:** FR-002, UC-001
+**Satisfies:** FR-002, UC-001, NFR-004 (Proposed)
 
 Steps (IC-005):
 1. Add `duckdb` as an optional dependency in `requirements.txt`, imported lazily
    inside the query function so the test suite never needs it (NFR-002).
 2. Move the query's URL regex into the module, shared with Phase 1's filter so the
-   two can't drift.
+   two can't drift. Add a test that both accept and reject the same fixture URLs
+   (NFR-004, Proposed).
 3. Read the S3 index with DuckDB's `PROVIDER credential_chain`, which may use
    `~/.aws`, as in the reference script. No key ID, secret or token appears in any
-   repo file, CLI argument or log line. Set a descriptive `custom_user_agent`.
+   repo file, CLI argument or log line. Set `custom_user_agent` to a string built
+   from `net.CONTACT`, the same contact the `net.py` sessions use, so a BUG-001
+   fix covers both (IC-005).
 4. Write intermediate output, such as a saved candidate list, only under
    `data/cache/`, which is already git-ignored. Never write it to the repo root,
    as the reference script does.
@@ -184,13 +199,21 @@ machine's `.venv`.
 ### Phase 4 — Requirement wording and operator docs
 
 **Goal:** Make the written requirements say what the code now does.
-**Satisfies:** FR-002, UC-001
+**Satisfies:** FR-002, UC-001, NFR-003 (Proposed)
 
 Steps:
 1. Depending on Open question 5, run `/new-requirement` (or a supersede) so FR-002
    and UC-001 step 3 name web-crawl sources, not only Censys.
-2. Document the two-step operator flow (query, then import) where the Censys flow
-   is documented.
+2. Bring the rest of UC-001 in line:
+   - **Preconditions:** add AWS credentials readable by `credential_chain` (env or
+     `~/.aws`) for Phase 3's in-repo query, alongside `CENSYS_PAT`.
+   - **Alternate flows:** add the case where no AWS credentials are found, so the
+     query stage fails and the operator can still import a file (Phase 1).
+   - **Related requirements:** cite IC-005 in place of the superseded IC-004.
+3. Document the two-step operator flow (query, then import) where the Censys flow
+   is documented. Give the query, import and crawl-up stages each a `README.md`
+   section with the command line, the credentials it needs (named only) and its
+   inputs and outputs (NFR-003, Proposed).
 
 ## Open questions
 
@@ -269,3 +292,28 @@ NFR-001 is now Approved at 0.5 s/request. Phase 2 sets that pacing as a module
 constant and gets a new Open question 6 on whether the limit is per host or
 global. Open question 2 is resolved and Open question 7 (crawl-up cap N) is added.
 The probe not pacing itself to NFR-001 is flagged as out of scope, for `/fix-bug`.
+
+### 2026-11-10 17:38 MST — Fixed audit findings 1–3
+
+**Prompt:**
+
+> fix findings 1-3, then run /new-requirement for  "documenting the operator flow" and /new-requirement for  Phase 3's "sharing the URL regex with Phase 1's filter"
+
+From `/audit-plan`:
+1. Removed the out-of-date note that NFR-002 wasn't in FEAT-001's list.
+2. Added BUG-001 (placeholder `net.CONTACT` in the User-Agent) as a dependency under
+   IC-005 and as a Phase 2 risk. Phase 3's `custom_user_agent` now reuses
+   `net.CONTACT`.
+3. Expanded Phase 4 to update UC-001's preconditions (AWS credentials), its
+   alternate flows (no credentials found), and its IC-004 → IC-005 citation.
+
+The two `/new-requirement` runs follow. Their IDs get cited in the plan once they
+exist.
+
+### 2026-11-10 17:41 MST — Cited NFR-003 and NFR-004
+
+Added NFR-003 (operator docs) and NFR-004 (one shared definition of the URL
+signatures), both Proposed and Should, through `/new-requirement`. They're now
+cited in Requirements traced, in Phase 3 (NFR-004, with a test that the query and
+the import filter agree) and in Phase 4 (NFR-003, README sections). That closes
+audit finding 5's two uncited steps. `--no-crawl-up` is still uncited.
